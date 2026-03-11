@@ -19,7 +19,7 @@ export default function StepDiet({
   language, selected, onSelect, onNext
 }: {
   language: Language
-  selected: DietType
+  selected: DietType | null
   onSelect: (diet: DietType) => void
   onNext: () => void
 }) {

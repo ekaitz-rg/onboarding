@@ -16,7 +16,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0)
   const [language, setLanguage] = useState<Language>('en')
   const [allergens, setAllergens] = useState<string[]>([])
-  const [diet, setDiet] = useState<DietType>('none')
+  const [diet, setDiet] = useState<DietType | null>(null)
 
   const goToMenu = (finalDiet: DietType) => {
     const params = new URLSearchParams({
@@ -46,7 +46,7 @@ export default function OnboardingPage() {
             language={language}
             selected={diet}
             onSelect={setDiet}
-            onNext={() => goToMenu(diet)}
+            onNext={() => goToMenu(diet ?? 'none')}
           />
         )}
       </AnimatePresence>
