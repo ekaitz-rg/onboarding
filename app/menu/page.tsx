@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,39 +22,39 @@ type MenuItem = {
 type Language = 'de' | 'en' | 'es'
 type DietType = 'vegan' | 'vegetarian' | 'none'
 
-const ALLERGENS = [
-  { code: 'gluten', icon: '🌾', de: 'Gluten', en: 'Gluten', es: 'Gluten' },
-  { code: 'crustaceans', icon: '🦞', de: 'Krebstiere', en: 'Crustaceans', es: 'Crustáceos' },
-  { code: 'eggs', icon: '🥚', de: 'Eier', en: 'Eggs', es: 'Huevos' },
-  { code: 'fish', icon: '🐟', de: 'Fisch', en: 'Fish', es: 'Pescado' },
-  { code: 'peanuts', icon: '🥜', de: 'Erdnüsse', en: 'Peanuts', es: 'Cacahuetes' },
-  { code: 'soybeans', icon: '🫘', de: 'Soja', en: 'Soybeans', es: 'Soja' },
-  { code: 'milk', icon: '🥛', de: 'Milch', en: 'Milk', es: 'Lácteos' },
-  { code: 'nuts', icon: '🌰', de: 'Schalenfrüchte', en: 'Tree Nuts', es: 'Frutos de cáscara' },
-  { code: 'celery', icon: '🥬', de: 'Sellerie', en: 'Celery', es: 'Apio' },
-  { code: 'mustard', icon: '🌿', de: 'Senf', en: 'Mustard', es: 'Mostaza' },
-  { code: 'sesame', icon: '🫙', de: 'Sesam', en: 'Sesame', es: 'Sésamo' },
-  { code: 'sulphites', icon: '🍷', de: 'Sulfite', en: 'Sulphites', es: 'Sulfitos' },
-  { code: 'lupin', icon: '🌼', de: 'Lupinen', en: 'Lupin', es: 'Altramuces' },
-  { code: 'molluscs', icon: '🐙', de: 'Weichtiere', en: 'Molluscs', es: 'Moluscos' },
+const ALLERGENS: { code: string; icon: string; de: string; en: string; es: string }[] = [
+  { code: 'gluten',      icon: '🌾', de: 'Gluten',         en: 'Gluten',       es: 'Gluten' },
+  { code: 'crustaceans', icon: '🦞', de: 'Krebstiere',     en: 'Crustaceans',  es: 'Crustáceos' },
+  { code: 'eggs',        icon: '🥚', de: 'Eier',           en: 'Eggs',         es: 'Huevos' },
+  { code: 'fish',        icon: '🐟', de: 'Fisch',          en: 'Fish',         es: 'Pescado' },
+  { code: 'peanuts',     icon: '🥜', de: 'Erdnüsse',       en: 'Peanuts',      es: 'Cacahuetes' },
+  { code: 'soybeans',    icon: '🫘', de: 'Soja',           en: 'Soybeans',     es: 'Soja' },
+  { code: 'milk',        icon: '🥛', de: 'Milch',          en: 'Milk',         es: 'Lácteos' },
+  { code: 'nuts',        icon: '🌰', de: 'Schalenfrüchte', en: 'Tree Nuts',    es: 'Frutos de cáscara' },
+  { code: 'celery',      icon: '🥬', de: 'Sellerie',       en: 'Celery',       es: 'Apio' },
+  { code: 'mustard',     icon: '🌿', de: 'Senf',           en: 'Mustard',      es: 'Mostaza' },
+  { code: 'sesame',      icon: '🫙', de: 'Sesam',          en: 'Sesame',       es: 'Sésamo' },
+  { code: 'sulphites',   icon: '🍷', de: 'Sulfite',        en: 'Sulphites',    es: 'Sulfitos' },
+  { code: 'lupin',       icon: '🌼', de: 'Lupinen',        en: 'Lupin',        es: 'Altramuces' },
+  { code: 'molluscs',    icon: '🐙', de: 'Weichtiere',     en: 'Molluscs',     es: 'Moluscos' },
 ]
 
 const texts = {
   de: { title: 'Speisekarte', empty: 'Keine passenden Gerichte.', vegan: 'Vegan', vegetarian: 'Vegetarisch', prefs: 'Filter', diet: 'Ernährung', allergens: 'Allergene', all: 'Alle', clear: 'Löschen' },
-  en: { title: 'Menu', empty: 'No matching dishes.', vegan: 'Vegan', vegetarian: 'Vegetarian', prefs: 'Filter', diet: 'Diet', allergens: 'Allergens', all: 'All', clear: 'Clear all' },
-  es: { title: 'Menú', empty: 'No hay platos compatibles.', vegan: 'Vegano', vegetarian: 'Vegetariano', prefs: 'Filtros', diet: 'Dieta', allergens: 'Alérgenos', all: 'Todos', clear: 'Limpiar' },
+  en: { title: 'Menu',        empty: 'No matching dishes.',        vegan: 'Vegan', vegetarian: 'Vegetarian',  prefs: 'Filter', diet: 'Diet',      allergens: 'Allergens', all: 'All',  clear: 'Clear all' },
+  es: { title: 'Menú',        empty: 'No hay platos compatibles.', vegan: 'Vegano', vegetarian: 'Vegetariano', prefs: 'Filtros', diet: 'Dieta',   allergens: 'Alérgenos', all: 'Todos', clear: 'Limpiar' },
 }
 
-export default function MenuPage() {
+function MenuContent() {
   const searchParams = useSearchParams()
   const slug = searchParams.get('restaurant') || 'restaurant-mitte'
 
-  const [language, setLanguage] = useState<Language>((searchParams.get('lang') || 'en') as Language)
+  const [language, setLanguage]           = useState<Language>((searchParams.get('lang') || 'en') as Language)
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>(searchParams.get('allergens')?.split(',').filter(Boolean) || [])
-  const [diet, setDiet] = useState<DietType>((searchParams.get('diet') || 'none') as DietType)
-  const [items, setItems] = useState<MenuItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showPrefs, setShowPrefs] = useState(false)
+  const [diet, setDiet]                   = useState<DietType>((searchParams.get('diet') || 'none') as DietType)
+  const [items, setItems]                 = useState<MenuItem[]>([])
+  const [loading, setLoading]             = useState(true)
+  const [showPrefs, setShowPrefs]         = useState(false)
 
   const t = texts[language]
 
@@ -72,7 +72,7 @@ export default function MenuPage() {
         .eq('restaurant_id', restaurant.id)
         .eq('active', true)
 
-      if (diet === 'vegan') query = query.eq('is_vegan', true)
+      if (diet === 'vegan')      query = query.eq('is_vegan', true)
       if (diet === 'vegetarian') query = query.eq('is_vegetarian', true)
 
       const { data: allItems } = await query
@@ -144,8 +144,9 @@ export default function MenuPage() {
                 <div className="flex gap-2">
                   {(['de', 'en', 'es'] as Language[]).map((l) => (
                     <button key={l} onClick={() => setLanguage(l)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${language === l ? 'bg-white text-neutral-950' : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                        }`}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        language === l ? 'bg-white text-neutral-950' : 'bg-neutral-800 text-neutral-400 hover:text-white'
+                      }`}
                     >
                       {l.toUpperCase()}
                     </button>
@@ -158,13 +159,14 @@ export default function MenuPage() {
                 <p className="text-xs text-neutral-500 uppercase tracking-widest mb-3">{t.diet}</p>
                 <div className="flex gap-2 flex-wrap">
                   {([
-                    { value: 'none', label: t.all },
+                    { value: 'none',       label: t.all },
                     { value: 'vegetarian', label: '🥗 ' + t.vegetarian },
-                    { value: 'vegan', label: '🌱 ' + t.vegan },
+                    { value: 'vegan',      label: '🌱 ' + t.vegan },
                   ] as { value: DietType; label: string }[]).map((d) => (
                     <button key={d.value} onClick={() => setDiet(d.value)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${diet === d.value ? 'bg-white text-neutral-950' : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                        }`}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        diet === d.value ? 'bg-white text-neutral-950' : 'bg-neutral-800 text-neutral-400 hover:text-white'
+                      }`}
                     >
                       {d.label}
                     </button>
@@ -183,30 +185,25 @@ export default function MenuPage() {
                       <button
                         key={a.code}
                         onClick={() => toggleAllergen(a.code)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${active
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                          active
                             ? 'bg-red-950 text-red-300 border border-red-800 shadow-[0_0_0_1px_rgba(239,68,68,0.2)]'
                             : 'bg-neutral-800/80 text-neutral-400 hover:text-white hover:bg-neutral-700'
-                          }`}
+                        }`}
                       >
-                        <span className="text-sm leading-none">{a.icon}</span>
-                        <span className="leading-none">{language === 'de' ? a.de : language === 'es' ? a.es : a.en}</span>
+                        <span className="leading-none">{label}</span>
                         {active && <span className="text-red-400 leading-none ml-0.5">✕</span>}
                       </button>
                     )
                   })}
                 </div>
-
-                {/* Resumen alérgenos activos */}
                 {selectedAllergens.length > 0 && (
                   <p className="mt-3 text-xs text-neutral-500">
                     {language === 'es' && `Excluyendo ${selectedAllergens.length} alérgeno${selectedAllergens.length > 1 ? 's' : ''}`}
                     {language === 'en' && `Excluding ${selectedAllergens.length} allergen${selectedAllergens.length > 1 ? 's' : ''}`}
                     {language === 'de' && `${selectedAllergens.length} Allergen${selectedAllergens.length > 1 ? 'e' : ''} ausgeschlossen`}
                     {' · '}
-                    <button
-                      onClick={() => setSelectedAllergens([])}
-                      className="text-neutral-400 hover:text-white underline underline-offset-2 transition-colors"
-                    >
+                    <button onClick={() => setSelectedAllergens([])} className="text-neutral-400 hover:text-white underline underline-offset-2">
                       {t.clear}
                     </button>
                   </p>
@@ -268,5 +265,17 @@ export default function MenuPage() {
         ))}
       </div>
     </main>
+  )
+}
+
+export default function MenuPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+        <p className="text-neutral-500 text-sm animate-pulse">Loading…</p>
+      </main>
+    }>
+      <MenuContent />
+    </Suspense>
   )
 }
